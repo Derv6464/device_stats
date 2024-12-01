@@ -1,3 +1,7 @@
 {
-    "logs_location": "logs/app.log"
+    "logs_location": "logs/app.log",
+    "client" : {
+        "host": "localhost",
+        "port": 3000
+    }
 }
