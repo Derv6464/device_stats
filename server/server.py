@@ -19,6 +19,3 @@ def hello_world():
 @app.route('/data')
 def data():
     return "metrics"
-
-if __name__ == '__main__':
-    app.run()
