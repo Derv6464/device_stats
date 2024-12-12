@@ -18,10 +18,24 @@ class Config_Helper:
             json.dump(self.config, file, indent=4)
 
     def get(self, key, default=None):
-        return self.config[key] if key in self.config else default
+        keys = key.split('.')
+        value = self.config
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        return value
 
     def set(self, key, value):
-        self.config[key] = value
+        keys = key.split('.')
+        config = self.config
+        for k in keys[:-1]:
+            if k not in config or not isinstance(config[k], dict):
+                config[k] = {}
+            config = config[k]
+
+        config[keys[-1]] = value
         self.save_config()
 
     def delete(self, key):

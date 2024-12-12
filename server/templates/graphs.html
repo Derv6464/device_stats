@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrics Chart</title>
+    <link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <main class="container">
+    <h1>Device Metrics</h1>
+    <form>
+    <div class="grid">
+        <div>
+            <select name="device" required>
+                <option selected disabled value="">
+                    Select a device
+                  </option>
+                {% for device in devices %}
+                <option value="{{ device.id }}"> {{ device.name }} </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <select name="Select a device" required>
+                <option selected disabled value="">
+                    Select a device
+                  </option>
+                {% for device in devices %}
+                <option value="{{ device.id }}"> {{ device.name }} </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit">
+                Show Graph
+            </button>
+        </div>
+    </div>
+</form>
+    <div>
+        {{ chart_html | safe }}
+    </div>
+    <main class="container">
+</body>
+</html>

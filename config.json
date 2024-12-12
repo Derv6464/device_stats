@@ -1,7 +1,14 @@
 {
     "logs_location": "logs/app.log",
-    "client" : {
+    "client": {
         "host": "localhost",
         "port": 3000
+    },
+    "server": {
+        "database": {
+            "host": "EXTERNAL_URL",
+            "port": 27017,
+            "name": "mydb"
+        }
     }
 }

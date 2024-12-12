@@ -1,16 +1,27 @@
 from  client.devices.baseDevice import BaseDevice
 import psutil
+import subprocess
 
 class Laptop(BaseDevice):
-    def __init__(self, logger):
-        BaseDevice.__init__(self, logger)
+    def __init__(self, logger, name):
+        BaseDevice.__init__(self, logger, name)
         
+    def setup(self, guid=None):
+        self.logger.info('Setting up laptop')
 
-    def read(self):
-        self.logger.info('Reading laptop data')
-        return {
-            'cpu': psutil.cpu_percent(),
-            'memory': psutil.virtual_memory().percent,
-            'disk': psutil.disk_usage('/').percent,
-            'network': psutil.net_io_counters()
-        }
+        if guid is None:
+            result = subprocess.run(
+                ["system_profiler", "SPHardwareDataType"], capture_output=True, text=True
+            )
+        else:
+            self.guid = guid
+            self.logger.info(f"GUID: {self.guid}")
+            return
+        
+        for line in result.stdout.splitlines():
+            if "Hardware UUID" in line:
+                self.guid = line.split(":")[1].strip()
+
+        self.logger.info(f"GUID: {self.guid}")
+
+
