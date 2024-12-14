@@ -14,7 +14,11 @@ class Database:
         #connect to db
         self.logger = logger
         self.logger.info(f"Connecting to database: {env_var}")
-        self.engine = create_engine(os.getenv(env_var))
+        try:
+            self.engine = create_engine(os.getenv(env_var))
+        except Exception as e:
+            self.engine = create_engine(os.environ.get(env_var))
+
         self.Session = sessionmaker(bind=self.engine) 
 
     def create_tables(self):
@@ -116,12 +120,11 @@ class Database:
             query = (
                 session.query(
                 models.Metric.value,  # Metric value
-                models.Times.samples_utc,
-                models.Metric.metric_id
+                models.Times.samples_utc
                 )
             .join(models.Times, models.Metric.time_id == models.Times.id)  # Join Metric with Times table
             )
-            print('metric_type_id', metric_type_id)
+ 
             if device_id:
                 query = query.filter(models.Metric.device_id == device_id)
             if metric_type_id:
