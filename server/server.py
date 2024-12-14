@@ -3,7 +3,7 @@ from helpers.config import Config_Helper
 
 from server.database.database import Database
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for
 import json
 import plotly.graph_objs as go
 import plotly.io as pio
@@ -34,31 +34,34 @@ def data():
 
     return data
 
-@app.route('/metrics')
+@app.route('/metrics', methods=['POST', 'GET'])
 def get_metrics():
-    # Retrieve metrics data
-    device_id = None  # Example filter
-    data = db.get_data(device_id=device_id)
-    
-    # Process data for Plotly
-    labels = [metric.time_id for metric in data]  # Replace with appropriate time labels
-    values = [metric.value for metric in data]
+    logger.info(f'Getting metrics... {request.method}')
+    if request.method == 'POST':
+        logger.info(f'Getting metrics... {request.form}')
+        device, metric = request.form.get('device'), request.form.get('metric')
+        print(device, metric)
+        values, labels  = db.get_data(device, metric)
 
-    # Create Plotly figure
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=labels, y=values, mode='lines+markers', name='Metrics'))
-    fig.update_layout(
-        title="Device Metrics",
-        xaxis_title="Time",
-        yaxis_title="Metric Value",
-        template="plotly_white"
-    )
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=labels, y=values, mode='lines+markers', name='Metrics'))
+        fig.update_layout(
+            title="Device Metrics",
+            xaxis_title="Time",
+            yaxis_title="Metric Value",
+            template="plotly_white"
+        )
 
-    # Convert the Plotly figure to HTML
-    chart_html = pio.to_html(fig, full_html=False)
+        # Convert the Plotly figure to HTML
+        chart_html = pio.to_html(fig, full_html=False)
+
+    else:
+        chart_html = None
+
     devices = db.get_devices()
-
-    return render_template('graphs.html', chart_html=chart_html, devices=devices)
+    metrics = db.get_metric_types()
+    #logger.info(f"Loading chart: {chart_html}")
+    return render_template('graphs.html', chart_html=chart_html, devices=devices, metrics=metrics)
 
 
 @app.route('/upload', methods=['POST'])

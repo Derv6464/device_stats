@@ -14,7 +14,7 @@ def main():
 
 def run_server():
     try:
-        subprocess.run(['gunicorn', '--bind', '0.0.0.0:8000', 'server.server:app'], check=True)
+        subprocess.run(['gunicorn', '--bind', '0.0.0.0:8000', 'server.server:app', f'--log-config {config.get("gunicorn_log")}'], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running Gunicorn: {e}")
         sys.exit(1)

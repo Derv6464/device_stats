@@ -13,7 +13,7 @@
 <body>
     <main class="container">
     <h1>Device Metrics</h1>
-    <form>
+    <form action="{{ url_for('get_metrics') }}" method="post">
     <div class="grid">
         <div>
             <select name="device" required>
@@ -26,12 +26,12 @@
             </select>
         </div>
         <div>
-            <select name="Select a device" required>
+            <select name="metric" required>
                 <option selected disabled value="">
-                    Select a device
+                    Select a metric
                   </option>
-                {% for device in devices %}
-                <option value="{{ device.id }}"> {{ device.name }} </option>
+                {% for metric in metrics %}
+                <option value="{{ metric.id }}"> {{ metric.name }} </option>
                 {% endfor %}
             </select>
         </div>
@@ -43,7 +43,11 @@
     </div>
 </form>
     <div>
-        {{ chart_html | safe }}
+        {% if chart_html %}
+            {{ chart_html | safe }}
+        {% else %}
+            <p> No data to display </p>
+        {% endif %}
     </div>
     <main class="container">
 </body>

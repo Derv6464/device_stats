@@ -9,6 +9,7 @@
             "host": "EXTERNAL_URL",
             "port": 27017,
             "name": "mydb"
-        }
+        },
+        "gunicorn_log": "logs/gunicorn.log"
     }
 }

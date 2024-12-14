@@ -3,7 +3,7 @@ from datetime import datetime
 class Device:
     def __init__(self, name, guid):
         self.name = name
-        self.guid = guid
+        self.id = guid
 
         self.metrics = []
 
@@ -14,9 +14,10 @@ class Device:
         self.metrics.extend(metrics)
 
 class Metric_Type:
-    def __init__(self, name, unit):
-        self.metric_type_name = name
+    def __init__(self, name, unit, id):
+        self.name = name
         self.unit = unit
+        self.id = id
 
         self.values = []
 
@@ -28,9 +29,9 @@ class Metric_Type:
 
 
 class Metric:
-    def __init__(self,data):
-        self.value = data.value
-        self.sampled_time = data.sampled_time
+    def __init__(self, value, sampled_time):
+        self.value = value
+        self.sampled_time = sampled_time
 
 
 class MetricMaker:

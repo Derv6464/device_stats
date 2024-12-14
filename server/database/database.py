@@ -88,9 +88,11 @@ class Database:
             session.flush()  # Flush to get the generated ID
         return metric_type.id
 
-    def get_metric_types(self, session):
+    def get_metric_types(self):
+        session = self.Session()
         metric_types = session.query(models.Metric_Type).all()
-        parsed_metric_types = [Metric_Type(metric_type.name, metric_type.unit) for metric_type in metric_types]
+        parsed_metric_types = [Metric_Type(metric_type.name, metric_type.unit, metric_type.id) for metric_type in metric_types]
+        session.close()
         return parsed_metric_types
     
     def make_time_instance(self, session, sampled_time, sender_time, time_offset):
@@ -108,22 +110,31 @@ class Database:
         return time_instance.id
 
 
-    def get_data(self, device_id=None, metric_type_id=None, start_time=None, end_time=None):
+    def get_data(self, device_id=None, metric_type_id=None):
         session = self.Session()
         try:
-            query = session.query(models.Metric)
-
+            query = (
+                session.query(
+                models.Metric.value,  # Metric value
+                models.Times.samples_utc,
+                models.Metric.metric_id
+                )
+            .join(models.Times, models.Metric.time_id == models.Times.id)  # Join Metric with Times table
+            )
+            print('metric_type_id', metric_type_id)
             if device_id:
                 query = query.filter(models.Metric.device_id == device_id)
             if metric_type_id:
-                query = query.filter(models.Metric.metric_id == metric_type_id)
-            if start_time:
-                query = query.filter(models.Metric.time_id >= start_time)
-            if end_time:
-                query = query.filter(models.Metric.time_id <= end_time)
+                query = query.filter(models.Metric.metric_id == int(metric_type_id))
 
             results = query.all()
-            return results
+            self.logger.info(f"Retrieved {len(results)} results")
+            for result in results:
+                self.logger.info(f"{result.metric_id} - {result.value} - {result.samples_utc}")
+            values = [result.value for result in results]
+            lables = [datetime.utcfromtimestamp(result.samples_utc).strftime('%Y-%m-%d %H:%M:%S') for result in results]
+            
+            return values, lables
         except Exception as e:
             self.logger.error(f"Error retrieving data: {e}")
             raise e
