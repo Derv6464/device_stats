@@ -1,13 +1,13 @@
 import server.database.models as models
 from server.database.data import Device, Metric, Metric_Type
 
-from dotenv import load_dotenv
+
 import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
-load_dotenv()
+
 
 class Database:
     def __init__(self, logger, env_var):
@@ -15,6 +15,8 @@ class Database:
         self.logger = logger
         self.logger.info(f"Connecting to database: {env_var}")
         try:
+            from dotenv import load_dotenv
+            load_dotenv()
             self.engine = create_engine(os.getenv(env_var))
         except Exception as e:
             self.engine = create_engine(os.environ.get(env_var))
