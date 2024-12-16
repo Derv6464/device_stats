@@ -3,7 +3,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from client.metrics.baseMetric import BaseMetric
+from client.metrics.baseMetric import Metric
 
 class BaseDevice(threading.Thread, ABC):
     def __init__(self, logger, name, guid=None):
@@ -16,7 +16,7 @@ class BaseDevice(threading.Thread, ABC):
 
         self.metrics = []
 
-    def add_metric(self, metric: BaseMetric):
+    def add_metric(self, metric: Metric):
         self.metrics.append(metric)
 
     @abstractmethod

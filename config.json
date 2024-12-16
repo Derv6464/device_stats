@@ -6,7 +6,7 @@
     },
     "server": {
         "database": {
-            "host": "EXTERNAL_URL",
+            "host": "INTERNAL_URL",
             "port": 27017,
             "name": "mydb"
         },

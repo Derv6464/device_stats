@@ -3,16 +3,16 @@ from helpers.config import Config_Helper
 
 from client.devices.laptop import Laptop
 from client.devices.firebeetle import FireBeetle
-from client.devices.datamodel import MetricMaker
 
-from client.metrics.cpu import CPU
-from client.metrics.ram import RAM
+from client.metrics.datamodel import MetricMaker
+from client.metrics.baseMetric import Metric
 
 
 from threading import Thread
 import time
 import requests
 import json
+import psutil
 
 config = Config_Helper('config.json')
 
@@ -21,8 +21,8 @@ Logger_Helper.setUp(config.get('logs_location'))
 logger = Logger_Helper.logger
 
 
-cpu_metric = CPU(logger, 'cpu', '%')
-ram_metric = RAM(logger, 'ram', '%')
+cpu_metric = Metric('cpu', '%', psutil.cpu_percent)
+ram_metric = Metric('ram', '%', psutil.virtual_memory().percent)
 
 logger.info('This is an info message')
 #FireBeetle(logger),

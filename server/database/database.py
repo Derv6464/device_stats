@@ -134,8 +134,6 @@ class Database:
 
             results = query.all()
             self.logger.info(f"Retrieved {len(results)} results")
-            for result in results:
-                self.logger.info(f"{result.metric_id} - {result.value} - {result.samples_utc}")
             values = [result.value for result in results]
             lables = [datetime.utcfromtimestamp(result.samples_utc).strftime('%Y-%m-%d %H:%M:%S') for result in results]
             
