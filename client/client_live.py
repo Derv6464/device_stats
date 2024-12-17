@@ -61,7 +61,7 @@ while True:
     logger.info(json_formatted_str)
     
     sio.emit('upload', data)  # Send the data to the server
-    time.sleep(0.2)
+    time.sleep(10)
 
 
 # Keep the client running

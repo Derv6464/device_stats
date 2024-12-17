@@ -81,9 +81,6 @@ def live():
 @socketio.on('message')
 def handle_message(data):
     print('Message from client: ' + data)
-    
-
-    #db.upload_metrics(devices, send_time, time_offset)
     send('got it!')
 
 @socketio.on('upload')
@@ -93,7 +90,7 @@ def handle_data(data):
     send_time = data["send_time"]
     time_offset = data["time_offset"]
     emit('upload',data, broadcast=True)
-    #db.upload_metrics(devices, send_time, time_offset)
+    db.upload_metrics(devices, send_time, time_offset)
     send('got it!')
 
 
