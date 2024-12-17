@@ -1,3 +1,7 @@
+import eventlet
+eventlet.monkey_patch()
+
+
 from helpers.logger import Logger_Helper
 from helpers.config import Config_Helper
 
