@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrics Chart</title>
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    >
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <main class="container">
+        <h1>Live Metrics</h1>
+        <div>
+            {% if connected %}
+            <p>Connected to Socket</p>
+            <div id="metrics-container">
+                <!-- Metrics data will be dynamically added here -->
+            </div>
+
+            <h1> Change Color</h1>
+            <form>
+                <input type="color" value="#ff9500" aria-label="Color picker"/>
+                <button type="submit">Change color</button>
+            </form>
+            </div>
+            <script>
+                // Connect to the Flask-SocketIO server using the dynamic socket URL
+                const socket = io.connect("{{ socket_url }}");
+
+               
+                
+
+                function createDeviceBlock(device) {
+                    const container = document.createElement('div');
+                    container.classList.add('device-block');
+
+                    // Add device heading
+                    const heading = document.createElement('h2');
+                    heading.textContent = device.name;
+                    container.appendChild(heading);
+
+                    // Create grid container for metrics
+                    const grid = document.createElement('div');
+                    grid.classList.add('grid');
+
+                    // Add metrics to the grid
+                    device.metrics.forEach(metric => {
+                        console.log("Device:", device.name, "Metric:", metric.name, "Value:", metric.values[0].value);
+                        const metricBlock = createMetricBlock(metric);
+                        grid.appendChild(metricBlock);
+                    });
+
+                    container.appendChild(grid);
+                    return container;
+                }
+
+                function createMetricBlock(metric) {
+                    const metricBlock = document.createElement('div');
+                    metricBlock.classList.add('metric-block');
+
+                    metricBlock.innerHTML = `
+                        <article>
+                        <p>Metric Type:<b> <span>${metric.metric_type}</span></b></p>
+                        <p>Value: <span>${metric.values[0].value.toFixed(2)}</span> <span>${metric.unit}</span></p>
+                        </article>
+                    `;
+
+                    return metricBlock;
+                }
+
+                // Handle the upload event from the server
+                socket.on('upload', function(data) {
+                    console.log("Received metric data:", data);
+
+                    const metricsContainer = document.getElementById('metrics-container');
+                    metricsContainer.innerHTML = ''; // Clear previous data
+
+                    data.devices.forEach(device => {
+                        const deviceBlock = createDeviceBlock(device);
+                        metricsContainer.appendChild(deviceBlock);
+                    });
+                });
+            </script>
+
+            {% else %}
+
+                <span aria-busy="true">Waiting for socket connection...</span>
+                <br>
+                <br>
+                <form action="{{ url_for('live') }}" method="get">
+                    <button type="submit">Try Refresh</button>
+                </form>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>
