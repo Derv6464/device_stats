@@ -156273,3 +156273,5 @@ sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not translate
 2024-12-17 10:42:16,767 - INFO - Uploading metric: 10.1
 2024-12-17 10:42:16,925 - INFO - Uploading metric type: ram
 2024-12-17 10:42:17,245 - INFO - Uploading metric: 82.3
+2024-12-17 10:59:34,329 - INFO - This is an info message
+2024-12-17 10:59:34,330 - INFO - Connecting to database: EXTERNAL_URL
