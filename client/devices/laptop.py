@@ -3,8 +3,8 @@ import psutil
 import subprocess
 
 class Laptop(BaseDevice):
-    def __init__(self, logger, name):
-        BaseDevice.__init__(self, logger, name)
+    def __init__(self, logger, name, sample_rate=0.3):
+        BaseDevice.__init__(self, logger, name, sample_rate=sample_rate)
         
     def setup(self, guid=None):
         self.logger.info('Setting up laptop')

@@ -4,6 +4,8 @@ from helpers.config import Config_Helper
 from server.database.database import Database
 
 from flask import Flask, request, jsonify, render_template, url_for
+from flask_socketio import SocketIO,send, emit,  join_room, leave_room
+from flask_cors import CORS
 import json
 import plotly.graph_objs as go
 import plotly.io as pio
@@ -19,20 +21,15 @@ logger.info('This is an info message')
 db = Database(logger, config.get('server.database.host'))
 
 app = Flask(__name__)
+CORS(app,resources={r"/*":{"origins":"*"}})
+socketio = SocketIO(app,cors_allowed_origins="*")
+
+connected_clients = set()
 
 @app.route('/hello')
 def hello_world():
     logger.info('Hello, World!')
     return 'Hello, World!'
-
-@app.route('/data')
-def data():
-    logger.info('Getting data...')
-    data = db.get_data()
-    for i in data:
-        logger.info(f"{i.device_id}, {i.time_id}, {i.metric_id}, {i.value}")
-
-    return data
 
 @app.route('/metrics', methods=['POST', 'GET'])
 def get_metrics():
@@ -76,3 +73,39 @@ def upload_data():
     db.upload_metrics(devices, send_time, time_offset)
         
     return jsonify({"message": "Data uploaded successfully"})
+
+@app.route('/live', methods=['GET'])
+def live():
+    return render_template('live.html', connected=connected_clients)
+
+@socketio.on('message')
+def handle_message(data):
+    print('Message from client: ' + data)
+    
+
+    #db.upload_metrics(devices, send_time, time_offset)
+    send('got it!')
+
+@socketio.on('upload')
+def handle_data(data):
+    #print(data)
+    devices = data["devices"]
+    send_time = data["send_time"]
+    time_offset = data["time_offset"]
+    emit('upload',data, broadcast=True)
+    #db.upload_metrics(devices, send_time, time_offset)
+    send('got it!')
+
+
+# Event when the client connects
+@socketio.on('connect')
+def handle_connect():
+    print("A client connected!")
+    connected_clients.add(request.sid) 
+    emit('message', 'Hello from the server!')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("A client disconnected!")
+    connected_clients.discard(request.sid)  # Remove client session ID from the set
+    print(f"Connected clients: {connected_clients}")

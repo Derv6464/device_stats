@@ -20,14 +20,15 @@ print(config.get('logs_location'))
 Logger_Helper.setUp(config.get('logs_location'))
 logger = Logger_Helper.logger
 
+url = f"{config.get('client.url')}/upload"
 
 cpu_metric = Metric('cpu', '%', psutil.cpu_percent)
-ram_metric = Metric('ram', '%', psutil.virtual_memory().percent)
+ram_metric = Metric('ram', '%', lambda: psutil.virtual_memory().percent)
 
 logger.info('This is an info message')
 #FireBeetle(logger),
-mac = Laptop(logger, "MacBook")
-mac2 = Laptop(logger, "MacBook2")
+mac = Laptop(logger, "MacBook", 1)
+mac2 = Laptop(logger, "MacBook2", 1)
 devices = [mac, mac2]
 mac.setup()
 mac2.setup("fake_guid")
@@ -46,13 +47,18 @@ def run():
 
 def make_request():
     data = maker.make_metrics()
-    #json_object = json.loads(data)
-    json_formatted_str = json.dumps(data, indent=2)
-    logger.info(json_formatted_str)
-    response = requests.post('http://localhost:8000/upload', json=data)
+    response = requests.post(url, json=data)
+    if response.status_code == 200:
+        maker.clear_metrics()
     print(response.text)
 
 thread = Thread(target = run)
 thread.start()
 time.sleep(1)
-make_request() 
+
+
+while True:
+    logger.info('Making request...')
+    make_request()
+    time.sleep(2)
+

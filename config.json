@@ -1,15 +1,11 @@
 {
     "logs_location": "logs/app.log",
     "client": {
-        "host": "localhost",
-        "port": 3000
+        "url": "http://127.0.0.1:8000"
     },
     "server": {
         "database": {
-            "host": "INTERNAL_URL",
-            "port": 27017,
-            "name": "mydb"
-        },
-        "gunicorn_log": "logs/gunicorn.log"
+            "host": "EXTERNAL_URL"
+        }
     }
 }
