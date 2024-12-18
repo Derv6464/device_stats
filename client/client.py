@@ -13,7 +13,6 @@ from client.metrics.ble_data import BLE_Data
 from threading import Thread
 import time
 import requests
-import json
 import psutil
 
 class Client:   

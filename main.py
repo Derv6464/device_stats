@@ -5,8 +5,6 @@ import argparse
 import subprocess
 import sys
 
-
-from client.client import Client
 import helpers.config as config
 
 
@@ -37,9 +35,11 @@ if __name__ == '__main__':
     if agrs.run  == 'server':
         run_server()
     elif agrs.run == 'client':
+        from client.client import Client
         client = Client()
         client.run()
     elif agrs.run == 'client_live':
-        import client.client_live as client_live
-        #import client.testing
+        from client.client import ClientLive
+        client = ClientLive()
+        client.run()
         

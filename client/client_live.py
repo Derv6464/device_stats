@@ -16,16 +16,26 @@ import json
 import psutil
 import socketio
 
-config = Config_Helper('config.json')
 
-print(config.get('logs_location'))
-Logger_Helper.setUp(config.get('logs_location'))
-logger = Logger_Helper.logger
 
-url_live = f"{config.get('client.url')}"
-url = f"{config.get('client.url')}/upload"
 
-logger.info('Setting up metrics...')
+class Client:   
+    def __init__(self):
+        self.config = Config_Helper('config.json')
+        Logger_Helper.setUp(self.config.get('logs_location'))
+        self.logger = Logger_Helper.logger
+
+        self.url = f"{self.config.get('client.url')}/upload"
+        self.url_live = f"{self.config.get('client.url')}"
+
+        try:
+            self.setup()
+        except Exception as e:
+            self.logger.error("Failed to setup client")
+            self.logger.error(e)
+            exit(1)
+       
+
 laptopMetrics = [
     StandardMetric('cpu', '%', psutil.cpu_percent),
     StandardMetric ('ram', '%', lambda: psutil.virtual_memory().percent)
@@ -113,7 +123,7 @@ finally:
         for device in devices:
             device.cleanup()
             device.join()
-            
+
     thread.join()
     exit(0)
 
