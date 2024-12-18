@@ -9,8 +9,7 @@ from client.metrics.standardMetric import StandardMetric
 from client.metrics.bleMetric import BLE_Metric
 from client.metrics.ble_data import BLE_Data
 
-
-from threading import Thread
+import threading
 import time
 import requests
 import psutil
@@ -69,8 +68,7 @@ class Client:
         response = requests.post(self.url, json=data)
         if response.status_code == 200:
             self.maker.clear_metrics()
-        self.logger(response.text)
-
+        #self.logger(response.text)
 
     def run_devices(self):
         for device in self.devices:
@@ -78,7 +76,7 @@ class Client:
 
     def run(self):
         try:        
-            thread = Thread(target = self.run_devices)
+            thread = threading.Thread(target = self.run_devices)
             thread.start()
             time.sleep(1)
 
@@ -89,7 +87,6 @@ class Client:
 
         except KeyboardInterrupt:
             print("Exiting...")
-            
             exit(0)
         except Exception as e:
             self.logger.error(e)
@@ -97,7 +94,15 @@ class Client:
         finally:
             if self.devices:
                 for device in self.devices:
+                    for thread in threading.enumerate(): 
+                        print(thread.name)
+
                     device.cleanup()
                     device.join()
 
+            
+
             thread.join()
+
+            for thread in threading.enumerate(): 
+                print(thread.name)

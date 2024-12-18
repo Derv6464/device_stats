@@ -1,11 +1,11 @@
 {
     "logs_location": "logs/app.log",
     "client": {
-        "url": "http://127.0.0.1:8000"
+        "url": "https://device-stats.onrender.com"
     },
     "server": {
         "database": {
-            "host": "EXTERNAL_URL"
+            "host": "INTERNAL_URL"
         }
     }
 }

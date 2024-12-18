@@ -26,11 +26,15 @@ class Laptop(BaseDevice):
         #self.logger.info(f"GUID: {self.guid}")
 
     def run(self):
-        while self.running:
-            for metric in self.metrics:
-                data = metric.get_value()
-                #self.logger.info(data)
+        try:
+            while self.running:
+                for metric in self.metrics:
+                    data = metric.get_value()
+                    #self.logger.info(data)
 
-            time.sleep(self.sample_rate)
-
-        self.logger.info("Shutdown Safely")
+                time.sleep(self.sample_rate)
+        except Exception as e:
+            self.logger.error(e)
+        finally:
+            self.cleanup()
+            self.logger.info("Shutdown Safely")

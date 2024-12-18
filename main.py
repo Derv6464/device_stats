@@ -39,7 +39,7 @@ if __name__ == '__main__':
         client = Client()
         client.run()
     elif agrs.run == 'client_live':
-        from client.client import ClientLive
+        from client.client_live import ClientLive
         client = ClientLive()
         client.run()
         

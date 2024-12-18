@@ -11,15 +11,10 @@ from client.metrics.ble_data import BLE_Data
 
 from threading import Thread
 import time
-import requests
-import json
 import psutil
 import socketio
 
-
-
-
-class Client:   
+class ClientLive:   
     def __init__(self):
         self.config = Config_Helper('config.json')
         Logger_Helper.setUp(self.config.get('logs_location'))
@@ -28,6 +23,8 @@ class Client:
         self.url = f"{self.config.get('client.url')}/upload"
         self.url_live = f"{self.config.get('client.url')}"
 
+        self.sio = socketio.Client()
+        self.setupSocket()
         try:
             self.setup()
         except Exception as e:
@@ -36,94 +33,83 @@ class Client:
             exit(1)
        
 
-laptopMetrics = [
-    StandardMetric('cpu', '%', psutil.cpu_percent),
-    StandardMetric ('ram', '%', lambda: psutil.virtual_memory().percent)
-]
+    def setup(self):
+        laptopMetrics = [
+            StandardMetric('cpu', '%', psutil.cpu_percent),
+            StandardMetric ('ram', '%', lambda: psutil.virtual_memory().percent)
+        ]
 
-bleMetrics = [
-    BLE_Metric('pot', 'V'),
-    BLE_Metric('isr', 'bool')
-]
-
-logger.info('Setting up BLE data...')
-ble_data = BLE_Data("00000180-0000-1000-8000-00805f9b34fb", 
-                        "0000fef4-0000-1000-8000-00805f9b34fb", 
-                        "0000accc-0000-1000-8000-00805f9b34fb",
-                        "0000daca-0000-1000-8000-00805f9b34fb", 
-                        "0000113e-0000-1000-8000-00805f9b34fb", 
-                        "Dervla BLE")
+        bleMetrics = [
+            BLE_Metric('pot', 'V'),
+            BLE_Metric('isr', 'bool')
+        ]
+        ble_data = BLE_Data("00000180-0000-1000-8000-00805f9b34fb", 
+                            "0000fef4-0000-1000-8000-00805f9b34fb", 
+                            "0000accc-0000-1000-8000-00805f9b34fb",
+                            "0000daca-0000-1000-8000-00805f9b34fb", 
+                            "0000113e-0000-1000-8000-00805f9b34fb", 
+                            "Dervla BLE")
 
 
-logger.info('Setting up devices...')
-mac = Laptop(logger, "MacBook", 1)
-fb = BLE_Device(logger, "FireBeetle", ble_data, 1)
-devices = [mac, fb]
+        self.fb = BLE_Device(self.logger, "FireBeetle", ble_data, 1)
+        self.devices = [Laptop(self.logger, "MacBook", 1), 
+                   self.fb
+                   ]
+        for device in self.devices:
+            if isinstance(device, Laptop):
+                device.add_metrics(laptopMetrics)
+                device.setup()
+            elif isinstance(device, BLE_Device):
+                device.add_metrics(bleMetrics)
 
-for device in devices:
-    if isinstance(device, Laptop):
-        device.add_metrics(laptopMetrics)
-        device.setup()
-    elif isinstance(device, BLE_Device):
-        device.add_metrics(bleMetrics)
+        for device in self.devices:
+            device.setup()
 
-for device in devices:
-    try:
-        device.setup()
-    except Exception as e:
-        logger.error(f"Error setting up device: {device.name}")
-        logger.error(e)
+        self.maker = MetricMaker(self.devices)
 
-maker = MetricMaker(devices)
-
-def run():
-    for device in devices:
-        try:
+    def run_devices(self):
+        for device in self.devices:
             device.start()
+
+    def setupSocket(self):
+        @self.sio.event
+        def connect():
+            print("Connected to server")
+
+        @self.sio.on('colours')
+        def handle_colours(data):
+            print("Received data:", data)
+            if self.fb.sending_allowed:
+                self.fb.send_data(data.upper())
+
+        @self.sio.event
+        def disconnect():
+            print("Disconnected from server")
+
+    def run(self):
+        try:        
+            self.sio.connect(self.url_live)
+            thread = Thread(target = self.run_devices)
+            thread.start()
+            time.sleep(1)
+
+            while True:
+                data = self.maker.make_single_metric()
+                self.sio.emit('upload', data)  
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            print("Exiting...")
+            
+            exit(0)
         except Exception as e:
-            logger.error(f"Error starting device: {device.name}")
-            logger.error(e)
+            self.logger.error(e)
+            exit(1)
+        finally:
+            self.sio.disconnect()
+            if self.devices:
+                for device in self.devices:
+                    device.cleanup()
+                    device.join()
 
-
-sio = socketio.Client()
-
-@sio.event
-def connect():
-    print("Connected to server")
-
-@sio.on('colours')
-def handle_colours(data):
-    print("Received data:", data)
-    if fb.sending_allowed:
-        fb.send_data(data.upper())
-
-@sio.event
-def disconnect():
-    print("Disconnected from server")
-
-
-sio.connect(url_live)
-
-thread = Thread(target = run)
-thread.start()
-time.sleep(1)
-
-try:
-    while True:
-        data = maker.make_single_metric()
-        sio.emit('upload', data)  
-        time.sleep(1)
-except Exception as e:
-    print(e)
-    print("Exiting...")
-
-finally:
-    sio.disconnect()
-    if devices:
-        for device in devices:
-            device.cleanup()
-            device.join()
-
-    thread.join()
-    exit(0)
+            thread.join()
 
