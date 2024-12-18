@@ -7,3 +7,4 @@ flask_socketio
 eventlet
 flask_cors
 python-socketio      
+pandas

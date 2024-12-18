@@ -16,81 +16,84 @@ import requests
 import json
 import psutil
 
+class Client:   
+    def __init__(self):
+        self.config = Config_Helper('config.json')
+        Logger_Helper.setUp(self.config.get('logs_location'))
+        self.logger = Logger_Helper.logger
+
+        self.url = f"{self.config.get('client.url')}/upload"
+
+        try:
+            self.setup()
+        except Exception as e:
+            self.logger.error("Failed to setup client")
+            self.logger.error(e)
+            exit(1)
+
+    def setup(self):
+        laptopMetrics = [
+            StandardMetric('cpu', '%', psutil.cpu_percent),
+            StandardMetric ('ram', '%', lambda: psutil.virtual_memory().percent)
+        ]
+
+        bleMetrics = [
+            BLE_Metric('pot', 'V'),
+            BLE_Metric('isr', 'bool')
+        ]
+        ble_data = BLE_Data("00000180-0000-1000-8000-00805f9b34fb", 
+                            "0000fef4-0000-1000-8000-00805f9b34fb", 
+                            "0000accc-0000-1000-8000-00805f9b34fb",
+                            "0000daca-0000-1000-8000-00805f9b34fb", 
+                            "0000113e-0000-1000-8000-00805f9b34fb", 
+                            "Dervla BLE")
 
 
+        self.devices = [Laptop(self.logger, "MacBook", 1), 
+                   BLE_Device(self.logger, "FireBeetle", ble_data, 1)
+                   ]
 
-try:
-    config = Config_Helper('config.json')
-    print(config.get('logs_location'))
-    Logger_Helper.setUp(config.get('logs_location'))
-    logger = Logger_Helper.logger
+        for device in self.devices:
+            if isinstance(device, Laptop):
+                device.add_metrics(laptopMetrics)
+                device.setup()
+            elif isinstance(device, BLE_Device):
+                device.add_metrics(bleMetrics)
 
-    url = f"{config.get('client.url')}/upload"
-
-    laptopMetrics = [
-        StandardMetric('cpu', '%', psutil.cpu_percent),
-        StandardMetric ('ram', '%', lambda: psutil.virtual_memory().percent)
-    ]
-
-    bleMetrics = [
-        BLE_Metric('pot', 'V'),
-        BLE_Metric('isr', 'bool')
-    ]
-    ble_data = BLE_Data("00000180-0000-1000-8000-00805f9b34fb", 
-                        "0000fef4-0000-1000-8000-00805f9b34fb", 
-                        "0000accc-0000-1000-8000-00805f9b34fb",
-                        "0000daca-0000-1000-8000-00805f9b34fb", 
-                        "0000113e-0000-1000-8000-00805f9b34fb", 
-                        "Dervla BLE")
-    
-    logger.info('This is an info message')
-
-    #FireBeetle(logger),
-
-    devices = [Laptop(logger, "MacBook", 1), 
-               BLE_Device(logger, "FireBeetle", ble_data, 1)
-               ]
-    
-    for device in devices:
-        if isinstance(device, Laptop):
-            device.add_metrics(laptopMetrics)
+        for device in self.devices:
             device.setup()
-        elif isinstance(device, BLE_Device):
-            device.add_metrics(bleMetrics)
 
-    for device in devices:
-        device.setup()
+        self.maker = MetricMaker(self.devices)
 
-    
+    def make_request(self):
+        data = self.maker.make_metrics()
+        response = requests.post(self.url, json=data)
+        if response.status_code == 200:
+            self.maker.clear_metrics()
+        self.logger(response.text)
 
-    maker = MetricMaker(devices)
 
-    def run():
-        for device in devices:
+    def run_devices(self):
+        for device in self.devices:
             device.start()
 
-    def make_request():
-        data = maker.make_metrics()
-        response = requests.post(url, json=data)
-        if response.status_code == 200:
-            maker.clear_metrics()
-        print(response.text)
+    def run(self):
+        try:        
+            thread = Thread(target = self.run_devices)
+            thread.start()
+            time.sleep(1)
 
-    thread = Thread(target = run)
-    thread.start()
-    time.sleep(1)
+            while True:
+                self.logger.info('Making request...')
+                self.make_request()
+                time.sleep(2)
 
-    while True:
-        logger.info('Making request...')
-        make_request()
-        time.sleep(2)
+        except KeyboardInterrupt:
+            print("Exiting...")
+            if self.devices:
+                for device in self.devices:
+                    device.cleanup()
+                    device.join()
 
-except KeyboardInterrupt:
-    print("Exiting...")
-    if devices:
-        for device in devices:
-            device.cleanup()
-            device.join()
-            
-    thread.join()
-    exit(0)
+            thread.join()
+            exit(0)
