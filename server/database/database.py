@@ -33,15 +33,15 @@ class Database:
         session = self.Session()
         try:
             for device in data:
-                self.logger.info(f"Uploading data for device: {device['name']}")
+                #self.logger.info(f"Uploading data for device: {device['name']}")
                 deivce_id = self.check_devices(session, device["guid"], device["name"])
 
                 for metric_type in device["metrics"]:
-                    self.logger.info(f"Uploading metric type: {metric_type['metric_type']}")
+                    #self.logger.info(f"Uploading metric type: {metric_type['metric_type']}")
                     metric_type_id = self.check_metric_type(session, metric_type["metric_type"], metric_type["unit"])
 
                     for metric in metric_type["values"]:
-                        self.logger.info(f"Uploading metric: {metric['value']}")
+                        #self.logger.info(f"Uploading metric: {metric['value']}")
                         time_id = self.make_time_instance(session, metric["sampled_time"], send_time, time_offset)
                         metric_id = self.make_metric(session, metric["value"], metric_type_id, deivce_id, time_id)
             
@@ -80,8 +80,6 @@ class Database:
         parsed_devices = [Device(device.name, device.id) for device in devices]
         session.close()
         return parsed_devices
-
-
 
     def check_metric_type(self, session, name, unit):
         metric_type = session.query(models.Metric_Type).filter_by(name=name, unit=unit).first()
@@ -140,6 +138,17 @@ class Database:
             return values, lables
         except Exception as e:
             self.logger.error(f"Error retrieving data: {e}")
+            raise e
+        finally:
+            session.close()
+
+    def get_metric_info(self, metric_id):
+        session = self.Session()
+        try:
+            metric = session.query(models.Metric_Type).filter_by(id=metric_id).first()
+            return Metric_Type(metric.name, metric.unit, metric.id)
+        except Exception as e:
+            self.logger.error(f"Error retrieving metric info: {e}")
             raise e
         finally:
             session.close()

@@ -20,6 +20,7 @@ class Times(Base):
     __tablename__ = 'times'
     id = Column(Integer, primary_key=True, autoincrement=True)
     samples_utc = Column(Integer, nullable=False)
+    
     sent_utc = Column(Integer, nullable=False)
     received_utc = Column(Integer, nullable=False)
     samples_min = Column(Integer, nullable=False)

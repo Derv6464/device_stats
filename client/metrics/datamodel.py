@@ -62,7 +62,7 @@ class MetricMaker:
                             "metric_type": metric.name,
                             "unit": metric.unit,
                             "values": [
-                                metric.get_value()
+                                metric.get_last_metric()
                             ]
                         } for metric in device.metrics
                     ]

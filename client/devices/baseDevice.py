@@ -1,12 +1,10 @@
 import threading
-import time
 from abc import ABC, abstractmethod
-from datetime import datetime
 
-from client.metrics.baseMetric import Metric
+from client.metrics.baseMetric import BaseMetric
 
 class BaseDevice(threading.Thread, ABC):
-    def __init__(self, logger, name, guid=None, sample_rate=0.3):
+    def __init__(self, logger, name, guid=None):
         threading.Thread.__init__(self)
         self.running = True
         self.logger = logger
@@ -14,21 +12,22 @@ class BaseDevice(threading.Thread, ABC):
         self.name = name
         self.guid = guid
 
-        self.sample_rate = sample_rate
-
         self.metrics = []
 
-    def add_metric(self, metric: Metric):
+    def add_metric(self, metric: BaseMetric):
         self.metrics.append(metric)
+
+    def add_metrics(self, metrics):
+        self.metrics.extend(metrics)
 
     @abstractmethod
     def setup(self):
        pass
 
+    @abstractmethod
     def run(self):
-        while self.running:
-            for metric in self.metrics:
-                data = metric.get_value()
-                #self.logger.info(data)
+       pass
 
-            time.sleep(self.sample_rate)
+    def cleanup(self):
+        self.logger.info(f"Cleaning up device: {self.name}")
+        self.running = False 

@@ -38,4 +38,5 @@ if __name__ == '__main__':
         import client.client as client
     elif agrs.run == 'client_live':
         import client.client_live as client_live
+        #import client.testing
         

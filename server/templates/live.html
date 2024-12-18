@@ -22,8 +22,8 @@
             </div>
 
             <h1> Change Color</h1>
-            <form>
-                <input type="color" value="#ff9500" aria-label="Color picker"/>
+            <form action="{{ url_for('send_colours') }}" method="post">
+                <input name="color" type="color" value="#ff9500" aria-label="Color picker"/>
                 <button type="submit">Change color</button>
             </form>
             </div>
@@ -31,8 +31,6 @@
                 // Connect to the Flask-SocketIO server using the dynamic socket URL
                 const socket = io.connect("{{ socket_url }}");
 
-               
-                
 
                 function createDeviceBlock(device) {
                     const container = document.createElement('div');

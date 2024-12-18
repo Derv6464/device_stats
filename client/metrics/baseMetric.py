@@ -1,22 +1,18 @@
 from datetime import datetime
+from abc import ABC, abstractmethod
 
-class Metric:
-    def __init__(self, name, unit, function: callable):
+class BaseMetric:
+    def __init__(self, name, unit):
         self.name = name
         self.unit = unit
-        self.function = function
-
         self.values = []
 
+    @abstractmethod
     def get_value(self):
-        value = {
-            "value" : self.function(),
-            "sampled_time" : datetime.now().timestamp()
-        }
-
-        self.values.append(value)
-
-        return value
+        pass
 
     def clear_values(self):
         self.values = []
+
+    def get_last_metric(self):
+        return self.values[-1] if self.values else None

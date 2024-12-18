@@ -7,106 +7,120 @@ from helpers.config import Config_Helper
 
 from server.database.database import Database
 
-from flask import Flask, request, jsonify, render_template, url_for
-from flask_socketio import SocketIO,send, emit,  join_room, leave_room
+from flask import Flask, request, jsonify, render_template, url_for, redirect
+from flask_socketio import SocketIO,send, emit
 from flask_cors import CORS
 import json
 import plotly.graph_objs as go
 import plotly.io as pio
-
-config = Config_Helper('config.json')
-
-print(config.get('logs_location'))
-Logger_Helper.setUp(config.get('logs_location'))
-logger = Logger_Helper.logger
-
-logger.info('This is an info message')
-
-db = Database(logger, config.get('server.database.host'))
-
-app = Flask(__name__)
-CORS(app,resources={r"/*":{"origins":"*"}})
-socketio = SocketIO(app,cors_allowed_origins="*")
-
-connected_clients = set()
-
-@app.route('/hello')
-def hello_world():
-    logger.info('Hello, World!')
-    return 'Hello, World!'
-
-@app.route('/metrics', methods=['POST', 'GET'])
-def get_metrics():
-    logger.info(f'Getting metrics... {request.method}')
-    if request.method == 'POST':
-        logger.info(f'Getting metrics... {request.form}')
-        device, metric = request.form.get('device'), request.form.get('metric')
-        print(device, metric)
-        values, labels  = db.get_data(device, metric)
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=labels, y=values, mode='lines+markers', name='Metrics'))
-        fig.update_layout(
-            title="Device Metrics",
-            xaxis_title="Time",
-            yaxis_title="Metric Value",
-            template="plotly_white"
-        )
-
-        # Convert the Plotly figure to HTML
-        chart_html = pio.to_html(fig, full_html=False)
-
-    else:
-        chart_html = None
-
-    devices = db.get_devices()
-    metrics = db.get_metric_types()
-    #logger.info(f"Loading chart: {chart_html}")
-    return render_template('graphs.html', chart_html=chart_html, devices=devices, metrics=metrics)
+import pandas as pd
 
 
-@app.route('/upload', methods=['POST'])
-def upload_data():
-    data = request.get_json()
-    json_formatted_str = json.dumps(data, indent=2)
-    logger.info(json_formatted_str)
-    devices = data["devices"]
-    send_time = data["send_time"]
-    time_offset = data["time_offset"]
+class Server:
+    def __init__(self):
+        self.config = Config_Helper('config.json')
+        Logger_Helper.setUp(self.config.get('logs_location'))
+        self.logger = Logger_Helper.logger
 
-    db.upload_metrics(devices, send_time, time_offset)
-        
-    return jsonify({"message": "Data uploaded successfully"})
+        self.logger.info('This is an info message')
 
-@app.route('/live', methods=['GET'])
-def live():
-    return render_template('live.html', connected=connected_clients)
+        self.db = Database(self.logger, self.config.get('server.database.host'))
 
-@socketio.on('message')
-def handle_message(data):
-    print('Message from client: ' + data)
-    send('got it!')
+        self.app = Flask(__name__)
+        CORS(self.app,resources={r"/*":{"origins":"*"}})
+        self.socketio = SocketIO(self.app,cors_allowed_origins="*")
 
-@socketio.on('upload')
-def handle_data(data):
-    #print(data)
-    devices = data["devices"]
-    send_time = data["send_time"]
-    time_offset = data["time_offset"]
-    emit('upload',data, broadcast=True)
-    db.upload_metrics(devices, send_time, time_offset)
-    send('got it!')
+        self.connected_clients = set()
+        self.set_routes()
+
+    def set_routes(self):
+        self.app.add_url_rule('/', 'hello', self.hello_world)
+        self.app.add_url_rule('/metrics', 'get_metrics', self.get_metrics, methods=['POST', 'GET'])
+        self.app.add_url_rule('/upload', 'upload_data', self.upload_data, methods=['POST'])
+        self.app.add_url_rule('/live', 'live', self.live)
+        self.app.add_url_rule('/send_colours', 'send_colours', self.send_colours, methods=['POST'])
+
+        self.socketio.on_event('message', self.handle_message)
+        self.socketio.on_event('upload', self.handle_data)
+        self.socketio.on_event('connect', self.handle_connect)
+        self.socketio.on_event('disconnect', self.handle_disconnect)
 
 
-# Event when the client connects
-@socketio.on('connect')
-def handle_connect():
-    print("A client connected!")
-    connected_clients.add(request.sid) 
-    emit('message', 'Hello from the server!')
+    def hello_world(self):  
+        self.logger.info('Hello, World!')
+        return 'Hello, World!'
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    print("A client disconnected!")
-    connected_clients.discard(request.sid)  # Remove client session ID from the set
-    print(f"Connected clients: {connected_clients}")
+
+    def get_metrics(self):
+        self.logger.info(f'Getting metrics... {request.method}')
+        if request.method == 'POST':
+            self.logger.info(f'Getting metrics... {request.form}')
+            device, metric = request.form.get('device'), request.form.get('metric')
+            values, labels  = self.db.get_data(device, metric)
+            df = pd.DataFrame({'values': values, 'time': labels})
+            df.sort_values(by='time', inplace=True)
+            metric = self.db.get_metric_info(metric)
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df['time'], y=df['values'], mode='lines+markers', name='Metrics'))
+            fig.update_layout(
+                title="Device Metrics",
+                xaxis_title="Time",
+                yaxis_title=f'{metric.name} ({metric.unit})',
+                template="plotly_white"
+            )
+
+            chart_html = pio.to_html(fig, full_html=False)
+
+        else:
+            chart_html = None
+
+        devices = self.db.get_devices()
+        metrics = self.db.get_metric_types()
+        #self.logger.info(f"Loading chart: {chart_html}")
+        return render_template('graphs.html', chart_html=chart_html, devices=devices, metrics=metrics)
+
+
+    def upload_data(self):
+        data = request.get_json()
+        json_formatted_str = json.dumps(data, indent=2)
+        self.logger.info(json_formatted_str)
+        devices = data["devices"]
+        send_time = data["send_time"]
+        time_offset = data["time_offset"]
+
+        self.db.upload_metrics(devices, send_time, time_offset)
+
+        return jsonify({"message": "Data uploaded successfully"})
+
+
+    def live(self):
+        return render_template('live.html', connected=self.connected_clients)
+
+    def send_colours(self):
+        data = request.form.get('color')
+        self.socketio.emit('colours', data.lstrip("#"))
+        return redirect(url_for('live'))
+    
+    def handle_message(self, message):
+        self.logger.info(f"Message from client: {message}")
+
+    def handle_data(self,data):
+        devices = data["devices"]
+        send_time = data["send_time"]
+        time_offset = data["time_offset"]
+        emit('upload',data, broadcast=True)
+        self.db.upload_metrics(devices, send_time, time_offset)
+        send('got it!')
+
+    def handle_connect(self):
+        self.connected_clients.add(request.sid) 
+        emit('message', 'Hello from the server!')
+        self.logger.info('Client connected')
+
+    def handle_disconnect(self):
+        self.connected_clients.discard(request.sid)  
+        self.logger.info('Client disconnected')
+
+
+app = Server().app
