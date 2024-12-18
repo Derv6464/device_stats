@@ -8,3 +8,4 @@ eventlet
 flask_cors
 python-socketio      
 pandas
+simplepyble

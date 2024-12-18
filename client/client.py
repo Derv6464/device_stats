@@ -90,10 +90,15 @@ class Client:
 
         except KeyboardInterrupt:
             print("Exiting...")
+            
+            exit(0)
+        except Exception as e:
+            self.logger.error(e)
+            exit(1)
+        finally:
             if self.devices:
                 for device in self.devices:
                     device.cleanup()
                     device.join()
 
             thread.join()
-            exit(0)
